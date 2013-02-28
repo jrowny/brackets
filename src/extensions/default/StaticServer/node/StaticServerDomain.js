@@ -45,6 +45,8 @@ maxerr: 50, node: true */
      */
     var STATIC_CACHE_MAX_AGE = 5000; // 5 seconds
     
+    var DOMAIN_NAME = "staticServer";
+    
     /**
      * @private
      * @type {Object.<string, http.Server>}
@@ -168,11 +170,11 @@ maxerr: 50, node: true */
      */
     function init(DomainManager) {
         _domainManager = DomainManager;
-        if (!_domainManager.hasDomain("staticServer")) {
-            _domainManager.registerDomain("staticServer", {major: 0, minor: 1});
+        if (!_domainManager.hasDomain(DOMAIN_NAME)) {
+            _domainManager.registerDomain(DOMAIN_NAME, {major: 0, minor: 1});
         }
         _domainManager.registerCommand(
-            "staticServer",
+            DOMAIN_NAME,
             "getServer",
             _cmdGetServer,
             true,
@@ -189,7 +191,7 @@ maxerr: 50, node: true */
             }]
         );
         _domainManager.registerCommand(
-            "staticServer",
+            DOMAIN_NAME,
             "closeServer",
             _cmdCloseServer,
             false,
