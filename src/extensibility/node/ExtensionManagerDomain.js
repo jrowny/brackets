@@ -70,7 +70,7 @@ var pendingDownloads = {};
  */
 function validateName(name) {
     // "This must be a unique, lowercase alpha-numeric name without spaces. It may include "." or "_" or "-" characters."
-    if (/^[a-z._\-]+$/.exec(name)) {
+    if (/^[a-z0-9._\-]+$/.exec(name)) {
         return true;
     }
     return false;
@@ -104,11 +104,13 @@ function _cmdValidate(path, callback) {
         }
         var callbackCalled = false;
         var metadata;
-        var foundMain = false;
+        var foundMainIn = null;
         var errors = [];
         var commonPrefix = null;
         
-        fs.createReadStream(path)
+        var readStream = fs.createReadStream(path);
+        
+        readStream
             .pipe(unzip.Parse())
             .on("error", function (exception) {
                 // General error to report for problems reading the file
@@ -117,6 +119,7 @@ function _cmdValidate(path, callback) {
                     errors: errors
                 });
                 callbackCalled = true;
+                readStream.destroy();
             })
             .on("entry", function (entry) {
                 // look for the metadata
@@ -160,6 +163,7 @@ function _cmdValidate(path, callback) {
                             // errors we can get here.
                             callback(exception, null);
                             callbackCalled = true;
+                            readStream.destroy();
                         })
                         .on("end", function () {
                             // attempt to parse the metadata
@@ -183,7 +187,7 @@ function _cmdValidate(path, callback) {
                             }
                         });
                 } else if (fileName === "main.js") {
-                    foundMain = true;
+                    foundMainIn = commonPrefix;
                 }
             })
             .on("end", function () {
@@ -195,7 +199,7 @@ function _cmdValidate(path, callback) {
                     return;
                 }
                 
-                if (!foundMain) {
+                if (foundMainIn === null || foundMainIn !== commonPrefix) {
                     errors.push([Errors.MISSING_MAIN, path]);
                 }
                 
@@ -241,6 +245,7 @@ function _performInstall(packagePath, installDirectory, validationResult, callba
                 if (!callbackCalled) {
                     callback(exc);
                     callbackCalled = true;
+                    readStream.destroy();
                 }
             })
             .on("entry", function (entry) {
@@ -271,12 +276,13 @@ function _performInstall(packagePath, installDirectory, validationResult, callba
                             if (!callbackCalled) {
                                 callback(err);
                                 callbackCalled = true;
+                                readStream.destroy();
                             }
                         });
                 }
                 
             })
-            .on("close", function () {
+            .on("end", function () {
                 if (!callbackCalled) {
                     callback(null, validationResult);
                     callbackCalled = true;
